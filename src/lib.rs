@@ -21,6 +21,7 @@ extern "C" {
 pub struct GameClient {
     gl: GL,
     program_color_2d: programs::Color2D,
+    program_color_2d_gradient: programs::Color2DGradient,
 }
 
 #[wasm_bindgen]
@@ -31,6 +32,7 @@ impl GameClient {
         let gl = gl_setup::initialize_webgl_context().unwrap();
         Self {
             program_color_2d: programs::Color2D::new(&gl),
+            program_color_2d_gradient: programs::Color2DGradient::new(&gl),
             gl: gl,
         }
     }
@@ -51,6 +53,16 @@ impl GameClient {
             curr_state.control_top, //top
             curr_state.control_left,  //left
             curr_state.control_right, //right
+            curr_state.canvas_height, //canvas_height
+            curr_state.canvas_width, //canvas_width
+        );
+
+        self.program_color_2d_gradient.render(
+            &self.gl,
+            curr_state.control_bottom + 20.0,  //bottom
+            curr_state.control_top - 20.0, //top
+            curr_state.control_left + 20.0,  //left
+            curr_state.control_right - 20.0, //right
             curr_state.canvas_height, //canvas_height
             curr_state.canvas_width, //canvas_width
         );
