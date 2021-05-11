@@ -4,7 +4,7 @@ use web_sys::*;
 use js_sys::WebAssembly;
 use super::super::common_funcs as cf;
 
-
+#[allow(dead_code)]
 pub struct Color2DGradient {
     program: WebGlProgram,
     color_buffer: WebGlBuffer,
@@ -19,7 +19,7 @@ impl Color2DGradient {
         let program = cf::link_program(
             gl,
             super::super::shaders::vertex::color_2d_gradient::SHADER,
-            super::super::shaders::fragment::color_2d_gradient::SHADER,
+            super::super::shaders::fragment::varying_color_from_vertex::SHADER,
         ).unwrap();
 
         let vertices_rect: [f32; 8] = [
@@ -119,8 +119,6 @@ impl Color2DGradient {
                 2.0 * bottom / canvas_height - 1.0,
                 0.0
             );
-
-            crate::log(&format!("{}", 2.0 * bottom / canvas_height - 1.0));
 
             let scale_matrix = cf::scaling_matrix(
                 2.0 * (right - left) / canvas_width,

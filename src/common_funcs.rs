@@ -1,5 +1,115 @@
+use super::constants::*;
+use nalgebra::{Perspective3};
 use web_sys::*;
 use web_sys::WebGlRenderingContext as GL;
+
+pub fn get_updated_3d_y_values(curr_time: f32) -> Vec<f32> {
+    let point_count_per_row = GRID_SIZE + 1;
+    let mut y_vals: Vec<f32> = vec![0.; point_count_per_row * point_count_per_row];
+    let half_grid: f32  = point_count_per_row as f32 / 2.0;
+    let frequency_scale: f32 = 3.0 * std::f32::consts::PI;
+    let y_scale = 0.15;
+
+    let time_shift = curr_time / 500.0;
+
+    for z in 0..point_count_per_row {
+        for x in 0..point_count_per_row {
+            let use_y_index = z * point_count_per_row + x;
+            let scaled_x = frequency_scale * (x as f32 - half_grid) / half_grid;
+            let scaled_z = frequency_scale * (z as f32 - half_grid) / half_grid;
+            y_vals[use_y_index] = y_scale * ((scaled_x * scaled_x + scaled_z * scaled_z).sqrt() + time_shift).sin();
+        }
+    }
+
+    y_vals
+}
+
+pub fn get_3d_projection_matrix(
+    bottom: f32,
+    top: f32,
+    left: f32,
+    right: f32,
+    canvas_height: f32,
+    canvas_width: f32,
+    rotation_angle_x_axis: f32,
+    rotation_angle_y_axis: f32,
+) -> [f32; 16] {
+
+    let rotation_x_axis: [f32; 16] = [
+        1.0, 0.0, 0.0, 0.0,
+        0.0, rotation_angle_x_axis.cos(), -rotation_angle_x_axis.sin(), 0.0,
+        0.0, rotation_angle_x_axis.sin(), rotation_angle_x_axis.cos(), 0.0,
+        0.0, 0.0, 0.0, 1.0
+    ];
+
+    let rotation_y_axis: [f32; 16] = [
+        rotation_angle_y_axis.cos(), 0.0, rotation_angle_y_axis.sin(), 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        -rotation_angle_y_axis.sin(), 0.0, rotation_angle_y_axis.cos(), 0.0,
+        0.0, 0.0, 0.0, 1.0,
+    ];
+
+    let rotation_matrix = mult_matrix_4(rotation_x_axis, rotation_y_axis);
+
+    let aspect: f32 = canvas_width / canvas_height;
+    let scale_x = (right - left) / canvas_width;
+    let scale_y = (top - bottom) / canvas_height;
+    let scale = scale_y;
+
+    let translation_matrix = translation_matrix(
+        -1.0 + scale_x + 2.0 * left / canvas_width,
+        -1.0 + scale_y + 2.0 * bottom / canvas_height,
+        Z_PLANE,
+    );
+
+    let scale_matrix = scaling_matrix(scale, scale, 0.0);
+    let rotation_scale = mult_matrix_4(rotation_matrix, scale_matrix);
+    let combined_transform = mult_matrix_4(rotation_scale, translation_matrix);
+
+    let perspective_matrix_tmp: Perspective3<f32> = Perspective3::new(aspect, FIELD_OF_VIEW, Z_NEAR, Z_FAR);
+    let mut perspective: [f32; 16] = [0.0; 16];
+    perspective.copy_from_slice(perspective_matrix_tmp.as_matrix().as_slice());
+
+    mult_matrix_4(combined_transform, perspective)
+}
+
+
+pub fn get_position_grid_n_by_n(n: usize) -> (Vec<f32>, Vec<u16>) {
+    let n_plus_one = n + 1;
+    let mut positions: Vec<f32> = vec![0.; 3 * n_plus_one * n_plus_one];
+    let mut indices: Vec<u16> = vec![0; 6 * n * n];
+
+    let graph_layout_width: f32 = 2.;
+    let square_size: f32 = graph_layout_width / n as f32;
+
+    for z in 0..n_plus_one {
+        for x in 0..n_plus_one {
+            let start_pos_i = 3 * (z * n_plus_one + x);
+            positions[start_pos_i + 0] = -1. + (x as f32) * square_size;
+            positions[start_pos_i + 1] = 0.;
+            positions[start_pos_i + 2] = -1. + (z as f32) * square_size;
+
+            if z < n && x < n {
+                let start_index_i = 6 * (z * n + x);
+                let vertex_index_top_left = (z * n_plus_one + x) as u16;
+                let vertex_index_bottom_left = vertex_index_top_left + n_plus_one as u16;
+                let vertex_index_top_right = vertex_index_top_left + 1;
+                let vertex_index_bottom_right = vertex_index_bottom_left + 1;
+
+                indices[start_index_i + 0] = vertex_index_top_left;
+                indices[start_index_i + 1] = vertex_index_bottom_left;
+                indices[start_index_i + 2] = vertex_index_bottom_right;
+                indices[start_index_i + 3] = vertex_index_top_left;
+                indices[start_index_i + 4] = vertex_index_bottom_right;
+                indices[start_index_i + 5] = vertex_index_top_right;
+            }
+        }
+    }
+
+    (positions, indices)
+}
+
+
 
 pub fn link_program(
     gl: &GL,

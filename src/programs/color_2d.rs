@@ -86,8 +86,6 @@ impl Color2D {
                 0.0
             );
 
-            crate::log(&format!("{}", 2.0 * bottom / canvas_height - 1.0));
-
             let scale_matrix = cf::scaling_matrix(
                 2.0 * (right - left) / canvas_width,
                 2.0 * (top - bottom) / canvas_height,
