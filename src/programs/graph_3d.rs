@@ -9,7 +9,9 @@ pub struct Graph3D {
     pub program: WebGlProgram,
     pub indices_buffer: WebGlBuffer,
     pub index_count: i32,
+    pub normals_buffer: WebGlBuffer,
     pub position_buffer: WebGlBuffer,
+    pub u_normals_rotation: WebGlUniformLocation,
     pub u_opacity: WebGlUniformLocation,
     pub u_projection: WebGlUniformLocation,
     pub y_buffer: WebGlBuffer,
@@ -58,10 +60,12 @@ impl Graph3D {
         );
 
         Self {
+            u_normals_rotation: gl.get_uniform_location(&program, "uNormalsRotation").unwrap(),
             u_opacity: gl.get_uniform_location(&program, "uOpacity").unwrap(),
             u_projection: gl.get_uniform_location(&program, "uProjection").unwrap(),
             program: program,
 
+            normals_buffer: gl.create_buffer().ok_or("Failed to create buffer").unwrap(),
             position_buffer: buffer_position,
             indices_buffer: buffer_indices,
             index_count: indices_array.length() as i32,
@@ -84,7 +88,7 @@ impl Graph3D {
     ) {
         gl.use_program(Some(&self.program));
 
-        let projection_matrix = cf::get_3d_projection_matrix(
+        let my_3d_matrices = cf::get_3d_matrices(
             bottom,
             top,
             left,
@@ -98,7 +102,12 @@ impl Graph3D {
         gl.uniform_matrix4fv_with_f32_array(
             Some(&self.u_projection),
             false,
-            &projection_matrix,
+            &my_3d_matrices.projection,
+        );
+        gl.uniform_matrix4fv_with_f32_array(
+            Some(&self.u_normals_rotation),
+            false,
+            &my_3d_matrices.normals_rotation,
         );
         gl.uniform1f(Some(&self.u_opacity), 1.0);
 
@@ -120,6 +129,28 @@ impl Graph3D {
             y_location + y_vals.len() as u32,
         );
         gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &y_array, GL::DYNAMIC_DRAW);
+
+        gl.bind_buffer(GL::ARRAY_BUFFER, Some(&self.normals_buffer));
+        gl.vertex_attrib_pointer_with_i32(2, 3, GL::FLOAT, false, 0, 0);
+        gl.enable_vertex_attrib_array(2);
+
+        let normals_vals = cf::get_grid_normals(super::super::constants::GRID_SIZE, &y_vals);
+        let normals_vals_memory_buffer = wasm_bindgen::memory()
+            .dyn_into::<WebAssembly::Memory>()
+            .unwrap()
+            .buffer();
+
+        let normals_vals_location = normals_vals.as_ptr() as u32 / 4;
+        let normals_vals_array = js_sys::Float32Array::new(&normals_vals_memory_buffer).subarray(
+            normals_vals_location,
+            normals_vals_location + normals_vals.len() as u32
+        );
+        gl.bind_buffer(GL::ARRAY_BUFFER, Some(&self.normals_buffer));
+        gl.buffer_data_with_array_buffer_view(
+            GL::ARRAY_BUFFER,
+            &normals_vals_array,
+            GL::DYNAMIC_DRAW,
+        );
 
         gl.draw_elements_with_i32(GL::TRIANGLES, self.index_count, GL::UNSIGNED_SHORT, 0);
 
