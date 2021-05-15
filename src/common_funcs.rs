@@ -3,6 +3,46 @@ use nalgebra::{Matrix4, Perspective3};
 use web_sys::*;
 use web_sys::WebGlRenderingContext as GL;
 
+pub fn get_cube_normals() -> Vec<f32> {
+    vec![
+        // Front
+        0.0,  0.0,  1.0,
+        0.0,  0.0,  1.0,
+        0.0,  0.0,  1.0,
+        0.0,  0.0,  1.0,
+
+        // Back
+        0.0,  0.0, -1.0,
+        0.0,  0.0, -1.0,
+        0.0,  0.0, -1.0,
+        0.0,  0.0, -1.0,
+
+        // Top
+        0.0,  1.0,  0.0,
+        0.0,  1.0,  0.0,
+        0.0,  1.0,  0.0,
+        0.0,  1.0,  0.0,
+
+        // Bottom
+        0.0, -1.0,  0.0,
+        0.0, -1.0,  0.0,
+        0.0, -1.0,  0.0,
+        0.0, -1.0,  0.0,
+
+        // Right
+        1.0,  0.0,  0.0,
+        1.0,  0.0,  0.0,
+        1.0,  0.0,  0.0,
+        1.0,  0.0,  0.0,
+
+        // Left
+        -1.0,  0.0,  0.0,
+        -1.0,  0.0,  0.0,
+        -1.0,  0.0,  0.0,
+        -1.0,  0.0,  0.0
+    ]
+}
+
 pub fn get_grid_normals(n: usize, y_vals: &Vec<f32>) -> Vec<f32> {
     let points_per_row = n + 1;
     let graph_layout_width: f32 = 2.0;
@@ -150,7 +190,7 @@ pub fn get_3d_matrices(
         Z_PLANE,
     );
 
-    let scale_matrix = scaling_matrix(scale, scale, 0.0);
+    let scale_matrix = scaling_matrix(scale * 0.4, scale * 0.4 , 0.0);
     let rotation_scale = mult_matrix_4(rotation_matrix, scale_matrix);
     let combined_transform = mult_matrix_4(rotation_scale, translation_matrix);
 
@@ -221,6 +261,57 @@ pub fn get_position_grid_n_by_n(n: usize) -> (Vec<f32>, Vec<u16>) {
             }
         }
     }
+
+    (positions, indices)
+}
+
+
+pub fn get_position_cube() -> (Vec<f32>, Vec<u16>) {
+    let mut positions: Vec<f32> = vec![
+        // Front face
+        -1.0, -1.0,  1.0,
+        1.0, -1.0,  1.0,
+        1.0,  1.0,  1.0,
+        -1.0,  1.0,  1.0,
+
+        // Back face
+        -1.0, -1.0, -1.0,
+        -1.0,  1.0, -1.0,
+        1.0,  1.0, -1.0,
+        1.0, -1.0, -1.0,
+
+        // Top face
+        -1.0,  1.0, -1.0,
+        -1.0,  1.0,  1.0,
+        1.0,  1.0,  1.0,
+        1.0,  1.0, -1.0,
+
+        // Bottom face
+        -1.0, -1.0, -1.0,
+        1.0, -1.0, -1.0,
+        1.0, -1.0,  1.0,
+        -1.0, -1.0,  1.0,
+
+        // Right face
+        1.0, -1.0, -1.0,
+        1.0,  1.0, -1.0,
+        1.0,  1.0,  1.0,
+        1.0, -1.0,  1.0,
+
+        // Left face
+        -1.0, -1.0, -1.0,
+        -1.0, -1.0,  1.0,
+        -1.0,  1.0,  1.0,
+        -1.0,  1.0, -1.0,
+    ];
+    let mut indices: Vec<u16> = vec![
+        0,  1,  2,      0,  2,  3,    // front
+        4,  5,  6,      4,  6,  7,    // back
+        8,  9,  10,     8,  10, 11,   // top
+        12, 13, 14,     12, 14, 15,   // bottom
+        16, 17, 18,     16, 18, 19,   // right
+        20, 21, 22,     20, 22, 23,   // left
+    ];
 
     (positions, indices)
 }

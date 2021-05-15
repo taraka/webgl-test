@@ -12,9 +12,9 @@ pub fn initialize_webgl_context() -> Result<GL, JsValue> {
     let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
     let gl: WebGlRenderingContext = canvas.get_context("webgl")?.unwrap().dyn_into()?;
 
-    attach_mouse_down_handler(&canvas);
-    attach_mouse_up_handler(&canvas);
-    attach_mouse_move_handler(&canvas);
+    attach_mouse_down_handler(&canvas)?;
+    attach_mouse_up_handler(&canvas)?;
+    attach_mouse_move_handler(&canvas)?;
 
     gl.enable(GL::BLEND);
     gl.blend_func(GL::SRC_ALPHA, GL::ONE_MINUS_SRC_ALPHA);
